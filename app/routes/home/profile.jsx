@@ -12,14 +12,13 @@ const TECH_STACK = [
   { category: 'Frontend', skills: ['React', 'Nextjs', 'Shadcn', 'Tailwindcss', 'Zustand', 'Tanstack Query'] },
   { category: 'Backend', skills: ['Nodejs', 'Express', 'FastAPI', 'NPM'] },
   { category: 'DB & Services', skills: ['Cloudflare Workers', 'Docker', 'Postman', 'Postgres', 'Prisma ORM', 'MongoDB', 'Redis'] },
-  { category: 'Others', skills: ['C++', 'Python', 'GO'] },
+  { category: 'Others', skills: ['C++', 'Python'] },
 ];
 
 const SOCIAL_TOOLS = [
   { id: 'vscode', label: 'VS Code' },
   { id: 'notion', label: 'Notion' },
   { id: 'chatgpt', label: 'ChatGPT' },
-  { id: 'vimeo', label: 'Vimeo' },
   { id: 'spotify', label: 'Spotify' },
   { id: 'github', label: 'GitHub' },
   { id: 'discord', label: 'Discord' },
@@ -131,11 +130,19 @@ export const Profile = ({ id, visible, sectionRef }) => {
                     <div className={styles.miniStats}>
                       <div className={styles.miniStatCard}>
                         <span className={styles.statLabel}>EXPERIENCE.</span>
-                        <span className={styles.statMeta}>SIH Greensphere</span>
+                        <span className={styles.statMeta}>SIH 35th, Inter-IIIT 8th Rank | Worked on making better web design and ml model integeration</span>
                       </div>
                       <div className={styles.miniStatCard}>
                         <span className={styles.statLabel}>ACHIEVEMENT.</span>
-                        <span className={styles.statMeta}>Top 160 GFG</span>
+                        <span className={styles.statMeta}>Top 160 GFG college rank</span>
+                      </div>
+                      <div className={styles.miniStatCard}>
+                        <span className={styles.statLabel}>DSA.</span>
+                        <span className={styles.statMeta}>650+ Solved</span>
+                      </div>
+                      <div className={styles.miniStatCard}>
+                        <span className={styles.statLabel}>CGPA.</span>
+                        <span className={styles.statMeta}>8.01</span>
                       </div>
                     </div>
                     <span className={styles.copyright}>© 2026 onwards</span>
@@ -178,9 +185,9 @@ export const Profile = ({ id, visible, sectionRef }) => {
 
                 {/* Highlight Card */}
                 <div className={styles.highlightCard}>
-                  <Heading level={3} className={styles.highlightTitle}>SARS<br />SAI</Heading>
+                  <Heading level={3} className={styles.highlightTitle}>DevSars24</Heading>
                   <div className={styles.highlightArt}>
-                    <div className={styles.artText}>T</div>
+                    <div className={styles.artText}>S</div>
                   </div>
                 </div>
               </div>

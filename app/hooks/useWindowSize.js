@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useWindowSize() {
-  const dimensions = useRef(() => ({ w: 1280, h: 800 }));
+  const dimensions = useRef({ w: 0, h: 0 });
 
   const createRuler = useCallback(() => {
     let ruler = document.createElement('div');
@@ -41,7 +41,7 @@ export function useWindowSize() {
     };
   }, [getHeight]);
 
-  const [windowSize, setWindowSize] = useState(dimensions.current);
+  const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
     const handleResize = () => {
