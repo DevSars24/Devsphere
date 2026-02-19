@@ -107,9 +107,12 @@ export const DisplacementSphere = props => {
   useEffect(() => {
     if (!renderer.current || !camera.current) return;
     const { width, height } = windowSize;
-    renderer.current.setSize(width, height);
-    camera.current.aspect = width / height;
-    camera.current.updateProjectionMatrix();
+
+    if (width > 0 && height > 0) {
+      renderer.current.setSize(width, height);
+      camera.current.aspect = width / height;
+      camera.current.updateProjectionMatrix();
+    }
   }, [windowSize]);
 
   // Animate

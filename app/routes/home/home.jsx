@@ -8,6 +8,8 @@ import { Footer } from '~/components/footer';
 import { baseMeta } from '~/utils/meta';
 import { Intro } from './intro';
 import { Profile } from './profile';
+import { Heading } from '~/components/heading';
+import { Section } from '~/components/section';
 import { ProjectSummary } from './project-summary';
 import { useEffect, useRef, useState } from 'react';
 import config from '~/config.json';
@@ -92,6 +94,9 @@ export const Home = () => {
         sectionRef={intro}
         scrollIndicatorHidden={scrollIndicatorHidden}
       />
+      <Section id="projects-section" className={styles.projectSection}>
+        <Heading level={2}>PROJECTS</Heading>
+      </Section>
       <ProjectSummary
         id="project-1"
         sectionRef={projectOne}

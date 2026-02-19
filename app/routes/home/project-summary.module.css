@@ -98,6 +98,10 @@
     top: 6%;
     left: 14%;
 
+    .summary[data-alternate='true'] & {
+      left: 0;
+    }
+
     @media (--mediaDesktop) {
       --width: 180%;
     }
