@@ -28,6 +28,7 @@ export function ProjectSummary({
   model,
   buttonText,
   buttonLink,
+  githubLink,
   alternate,
   ...rest
 }) {
@@ -93,6 +94,16 @@ export function ProjectSummary({
           <Button iconHoverShift href={buttonLink} iconEnd="arrow-right">
             {buttonText}
           </Button>
+          {githubLink && (
+            <Button
+              href={githubLink}
+              iconEnd="github"
+              variant="secondary"
+              className={styles.githubButton}
+            >
+              GitHub
+            </Button>
+          )}
         </div>
       </div>
     );

@@ -151,6 +151,7 @@ export const Navbar = () => {
         onClick={handleMobileNavClick}
       >
         <Monogram highlight />
+        <span className={styles.logoText}>Sars</span>
       </RouterLink>
       <NavToggle onClick={() => setMenuOpen(!menuOpen)} menuOpen={menuOpen} />
       <nav className={styles.nav}>

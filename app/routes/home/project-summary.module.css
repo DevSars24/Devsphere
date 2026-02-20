@@ -1,26 +1,29 @@
 .summary {
-  height: 100vh;
+  height: auto;
+  min-height: auto;
   width: 100%;
   max-height: 1080px;
-  padding-bottom: var(--spaceL);
-  margin: 120px 0;
+  padding: 0;
+  margin: 0;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 
   @media (--mediaDesktop) {
-    margin: var(--space2XL) 0;
+    margin: 40px 0;
   }
 
   @media (--mediaTablet) {
     height: auto;
-    margin: var(--space3XL) 0;
+    margin: 80px 0;
+    padding-bottom: 40px;
   }
 
   @media (--mediaMobile) {
-    padding-bottom: var(--space4XL);
-    margin-bottom: 0;
+    padding-bottom: 60px;
+    margin-bottom: 20px;
   }
 
   &[data-first='true'] {
@@ -95,7 +98,7 @@
   position: relative;
 
   &[data-device='laptop'] {
-    top: 6%;
+    top: 0;
     left: 14%;
 
     .summary[data-alternate='true'] & {
@@ -107,9 +110,9 @@
     }
 
     @media (--mediaTablet) {
-      --width: 140%;
+      --width: 100%;
 
-      top: 10%;
+      top: 50px;
       left: 0;
     }
   }
@@ -118,7 +121,7 @@
     --width: 116%;
     --aspectRatio: 7 / 10;
 
-    top: 5%;
+    top: 0;
     left: -10%;
 
     @media (--mediaDesktop) {
@@ -132,6 +135,7 @@
 
       left: 0;
       max-height: 60vh;
+      top: 5%;
     }
 
     @media (--mediaMobile) {
@@ -199,7 +203,7 @@
   grid-template-columns: 90px 1fr;
   gap: var(--spaceM);
   align-items: center;
-  margin-bottom: var(--spaceXL);
+  margin-bottom: var(--spaceM);
 }
 
 .indexNumber {
@@ -224,7 +228,7 @@
 }
 
 .title {
-  margin-bottom: var(--spaceL);
+  margin-bottom: var(--spaceS);
   transition-property: opacity;
   transition-timing-function: var(--bezierFastoutSlowin);
   transition-duration: var(--durationXL);
@@ -243,7 +247,7 @@
 }
 
 .description {
-  margin-bottom: var(--spaceXL);
+  margin-bottom: var(--spaceM);
   transition-property: opacity;
   transition-timing-function: var(--bezierFastoutSlowin);
   transition-duration: var(--durationXL);
@@ -268,6 +272,9 @@
   transition-delay: var(--durationXL);
   transform: translate3d(0, var(--spaceL), 0);
   opacity: 0;
+  display: flex;
+  gap: var(--spaceL);
+  flex-wrap: wrap;
 
   @media (--mediaUseMotion) {
     transition-property: transform, opacity;
@@ -278,4 +285,14 @@
     transform: none;
     opacity: 1;
   }
+}
+
+.githubButton {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.githubButton:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

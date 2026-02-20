@@ -106,6 +106,7 @@ export const Home = () => {
         description="Intelligent interview preparation, resume building, real-time insights, and smart cover letter generation. Powered by Gemini 2.5 Flash, Next.js 15, Clerk & Neon PostgreSQL."
         buttonText="View live site"
         buttonLink="https://ai-career-coach-gray-nine.vercel.app"
+        githubLink="https://github.com/DevSars24/ai-career-coach"
         model={{
           type: 'laptop',
           alt: 'SarsAI career coach dashboard',
@@ -127,6 +128,7 @@ export const Home = () => {
         description="DSA contest platform with Monaco Editor, AI-powered code evaluation via Gemini, live WebRTC sessions with LiveKit, and a personalized Mission Logs dashboard."
         buttonText="View live site"
         buttonLink="https://codeify-blond.vercel.app"
+        githubLink="https://github.com/DevSars24/codeify"
         model={{
           type: 'laptop',
           alt: 'Code Saarthi DSA contest interface',
@@ -147,6 +149,7 @@ export const Home = () => {
         description="Agentic AI chatbot for Indian farmers with multilingual support, crop disease diagnosis, market prices, government schemes, and a FastAPI + MongoDB backend."
         buttonText="View live site"
         buttonLink="https://sih-team-greensphere.vercel.app"
+        githubLink="https://github.com/DevSars24/SIH-Team-Greensphere"
         model={{
           type: 'laptop',
           alt: 'Krishi Mitra agricultural platform',
