@@ -157,7 +157,7 @@ export const Profile = ({ id, visible, sectionRef }) => {
                   <Heading level={3} className={styles.linksTitle}>LINKS.</Heading>
                   <div className={styles.linksGrid}>
                     <Link href={`https://github.com/${config.github}`} className={styles.linkTile}><Icon icon="github" /></Link>
-                    <Link href={`https://x.com/${config.twitter}`} className={styles.linkTile}><Icon icon="twitter" /></Link>
+                    <Link href={`https://x.com/${config.twitter}`} className={styles.linkTile}><Icon icon="x" /></Link>
                     <Link href={`mailto:${config.email}`} className={styles.linkTile}><Icon icon="email" /></Link>
                     <Link href={`https://linkedin.com/in/${config.linkedin}`} className={styles.linkTile}><Icon icon="linkedin" /></Link>
                   </div>
@@ -187,7 +187,7 @@ export const Profile = ({ id, visible, sectionRef }) => {
                 <div className={styles.highlightCard}>
                   <Heading level={3} className={styles.highlightTitle}>DevSars24</Heading>
                   <div className={styles.highlightArt}>
-                    <div className={styles.artText}>S</div>
+                    <span className={styles.artText}>S ars</span>
                   </div>
                 </div>
               </div>
