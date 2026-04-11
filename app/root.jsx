@@ -18,6 +18,7 @@ import { Error } from '~/layouts/error';
 import { VisuallyHidden } from '~/components/visually-hidden';
 import { Navbar } from '~/layouts/navbar';
 import { Progress } from '~/components/progress';
+import { CustomCursor } from '~/components/cursor';
 import config from '~/config.json';
 import styles from './root.module.css';
 import './reset.module.css';
@@ -138,6 +139,7 @@ export default function App() {
             Skip to main content
           </VisuallyHidden>
           <Navbar />
+          <CustomCursor />
           <main
             id="main-content"
             className={styles.container}
