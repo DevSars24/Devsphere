@@ -17,6 +17,7 @@ import { useEffect } from 'react';
 import { Error } from '~/layouts/error';
 import { VisuallyHidden } from '~/components/visually-hidden';
 import { Navbar } from '~/layouts/navbar';
+import { CustomCursor } from '~/components/cursor';
 import { Progress } from '~/components/progress';
 import config from '~/config.json';
 import styles from './root.module.css';
@@ -131,8 +132,9 @@ export default function App() {
         <Links />
         <link rel="canonical" href={canonicalUrl} />
       </head>
-      <body data-theme={theme}>
+      <body data-theme={theme} className={styles.cursorHidden}>
         <ThemeProvider theme={theme} toggleTheme={toggleTheme}>
+          <CustomCursor />
           <Progress />
           <VisuallyHidden showOnFocus as="a" className={styles.skip} href="#main-content">
             Skip to main content
