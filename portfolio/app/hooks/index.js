@@ -5,4 +5,5 @@ export * from './useInViewport';
 export * from './useParallax';
 export * from './usePrevious';
 export * from './useScrollToHash';
+export * from './useTilt';
 export * from './useWindowSize';
