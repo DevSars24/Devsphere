@@ -1,0 +1,114 @@
+@layer components {
+  /* -------- outer ring -------- */
+  .ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--accent, oklch(0.82 0.17 80));
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    transform: translate(-50%, -50%);
+    transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s ease,
+      background-color 0.3s ease,
+      opacity 0.3s ease;
+    mix-blend-mode: difference;
+    will-change: transform;
+    opacity: 0;
+  }
+
+  .ring[data-visible='true'] {
+    opacity: 1;
+  }
+
+  .ring[data-hover='true'] {
+    width: 64px;
+    height: 64px;
+    border-color: var(--primary, oklch(0.6 0.2 260));
+    background-color: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(2px);
+  }
+
+  .ring[data-clicking='true'] {
+    width: 28px;
+    height: 28px;
+    border-width: 3px;
+  }
+
+  /* -------- inner dot -------- */
+  .dot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    background: var(--accent, oklch(0.82 0.17 80));
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10001;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s ease,
+      height 0.2s ease,
+      background 0.3s ease,
+      opacity 0.3s ease;
+    will-change: transform;
+    opacity: 0;
+  }
+
+  .dot[data-visible='true'] {
+    opacity: 1;
+  }
+
+  .dot[data-hover='true'] {
+    width: 4px;
+    height: 4px;
+    background: var(--primary, oklch(0.6 0.2 260));
+  }
+
+  .dot[data-clicking='true'] {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* -------- trailing glow particles -------- */
+  .trail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    will-change: transform, opacity;
+    background: var(--accent, oklch(0.82 0.17 80));
+    opacity: 0;
+  }
+
+  /* -------- hide default cursor everywhere -------- */
+  .cursorHidden :global(*) {
+    cursor: none !important;
+  }
+
+  /* -------- disable on touch devices -------- */
+  @media (--mediaTouch) {
+    .ring,
+    .dot,
+    .trail {
+      display: none !important;
+    }
+  }
+
+  @media (--mediaReduceMotion) {
+    .ring,
+    .dot,
+    .trail {
+      transition: none !important;
+    }
+  }
+}
