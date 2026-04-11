@@ -69,6 +69,10 @@ export function Intro({ id, sectionRef, scrollIndicatorHidden, ...rest }) {
               </Suspense>
             )}
             <header className={styles.text}>
+              <div className={styles.roleChips} data-visible={visible}>
+                <span className={styles.roleChip}>Developer</span>
+                <span className={styles.roleChip} data-accent="true">Agentic AI</span>
+              </div>
               <h1 className={styles.name} data-visible={visible} id={titleId}>
                 <DecoderText text={config.name} delay={500} />
               </h1>
