@@ -264,29 +264,7 @@
   font-family: var(--monoFontStack);
 }
 
-.roleChips {
-  display: flex;
-  gap: 5px;
-  flex-shrink: 0;
-}
 
-.roleChip {
-  font-size: 0.55rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 100px;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.roleChip[data-accent='true'] {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
-  border-color: rgba(255, 255, 255, 0.1);
-}
 
 .bioBody {
   margin-bottom: var(--spaceL);
@@ -570,8 +548,9 @@
 
 /* ---- GitHub Contribution Card ---- */
 .githubCard {
-  background: var(--bento-bg);
+  background: #0D1117;
   padding: var(--spaceM);
+  border-color: #30363d;
 }
 
 /* ========== RESPONSIVE ========== */

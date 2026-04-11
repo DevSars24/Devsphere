@@ -33,6 +33,45 @@
   }
 }
 
+.roleChips {
+  display: flex;
+  gap: 8px;
+  margin-top: calc(var(--spaceXL) * -1);
+  margin-bottom: var(--space2XL);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity var(--durationL) var(--bezierFastoutSlowin) 0.3s,
+              transform var(--durationL) var(--bezierFastoutSlowin) 0.3s;
+
+  &[data-visible='true'] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (--mediaTablet) {
+    margin-bottom: var(--spaceM);
+  }
+}
+
+.roleChip {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 100px;
+  background: color-mix(in lab, var(--text) 5%, transparent);
+  color: color-mix(in lab, var(--text) 50%, transparent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in lab, var(--text) 10%, transparent);
+  transition: all 0.3s ease;
+}
+
+.roleChip[data-accent='true'] {
+  background: color-mix(in lab, var(--accent) 15%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in lab, var(--accent) 25%, transparent);
+}
+
 .name {
   text-transform: uppercase;
   font-size: calc((24 / 16) * 1rem);

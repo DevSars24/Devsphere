@@ -131,10 +131,6 @@ export const Profile = ({ id, visible, sectionRef }) => {
                       <span className={styles.name}>{config.name}</span>
                       <span className={styles.handle}>@{config.github}</span>
                     </div>
-                    <div className={styles.roleChips}>
-                      <span className={styles.roleChip}>Developer</span>
-                      <span className={styles.roleChip} data-accent="true">Agentic AI</span>
-                    </div>
                   </div>
                   <div className={styles.bioBody}>
                     <p className={styles.tagline}>I build <span className={styles.accent}>scalable backend</span> systems.</p>
@@ -184,7 +180,7 @@ export const Profile = ({ id, visible, sectionRef }) => {
                       </div>
                       <div className={styles.miniStatCard}>
                         <span className={styles.statLabel}>ACHIEVEMENT.</span>
-                        <span className={styles.statMeta}>Grand Finalist — ANRF AISEHack at IIIT Hyderabad (Nationwide)</span>
+                        <span className={styles.statMeta}>Grand Finalist at IIIT Hyderabad for the Anusandhan National Research Foundation (ANRF) AISEHack</span>
                       </div>
                       <div className={styles.miniStatCard} ref={dsaRef}>
                         <span className={styles.statLabel}>DSA.</span>
