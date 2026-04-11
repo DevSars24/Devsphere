@@ -96,7 +96,6 @@ export function CustomCursor() {
 
       // apply transforms
       if (ringRef.current) {
-        // slight stretch based on velocity for a dynamic feel
         const scaleX = 1 + Math.min(speed * 0.004, 0.15);
         const scaleY = 1 - Math.min(speed * 0.002, 0.08);
         const angle = Math.atan2(velocity.current.y, velocity.current.x);

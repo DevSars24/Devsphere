@@ -90,11 +90,6 @@
     opacity: 0;
   }
 
-  /* -------- hide default cursor everywhere -------- */
-  .cursorHidden :global(*) {
-    cursor: none !important;
-  }
-
   /* -------- disable on touch devices -------- */
   @media (--mediaTouch) {
     .ring,
