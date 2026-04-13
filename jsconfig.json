@@ -3,7 +3,8 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"]
-    }
+    },
+    "types": ["mdx"]
   },
   "include": ["app", ".storybook/story-container.jsx"]
 }
