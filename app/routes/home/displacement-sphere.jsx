@@ -37,7 +37,7 @@ function getRgb(theme) {
   return theme === 'dark' ? [94, 232, 250] : [2, 132, 199];
 }
 
-// ─── STRATEGY 1: Three.js WebGL (preferred — true 3D depth) ─
+// ─── STRATEGY 1: Three.js WebGL ──────────────────────────────
 function tryInitWebGL(canvas, themeRef) {
   try {
     const testCtx = canvas.getContext('webgl2') || canvas.getContext('webgl');
@@ -96,16 +96,9 @@ function tryInitWebGL(canvas, themeRef) {
     );
     scene.add(linesMesh);
 
-    renderer.render(scene, camera);
-    if (renderer.getContext().isContextLost()) {
-      renderer.dispose();
-      return null;
-    }
-
     return {
       type: 'webgl',
       renderer, camera, scene, pointsMesh, linesMesh, particleList,
-
       animate() {
         const pts = this.particleList;
         const pArr = this.pointsMesh.geometry.attributes.position.array;
@@ -136,19 +129,16 @@ function tryInitWebGL(canvas, themeRef) {
         this.linesMesh.geometry.setDrawRange(0, vi / 3);
         this.renderer.render(this.scene, this.camera);
       },
-
       updateTheme(t) {
         const c = new Color(getColor(t));
         this.pointsMesh.material.color = c;
         this.linesMesh.material.color = c;
       },
-
       resize(w, h) {
         this.renderer.setSize(w, h);
         this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
       },
-
       dispose() {
         this.pointsMesh.geometry.dispose();
         this.pointsMesh.material.dispose();
@@ -162,12 +152,11 @@ function tryInitWebGL(canvas, themeRef) {
   }
 }
 
-// ─── STRATEGY 2: Canvas 2D (bulletproof fallback) ───────────
+// ─── STRATEGY 2: Canvas 2D Fallback ─────────────────────────
 function initCanvas2D(canvas, themeRef) {
   try {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -188,21 +177,16 @@ function initCanvas2D(canvas, themeRef) {
     return {
       type: 'canvas2d',
       ctx, particleList, width: w, height: h, dpr,
-
       animate() {
         const { ctx: c, particleList: pts, width: W, height: H } = this;
         const rgb = getRgb(themeRef.current);
         c.clearRect(0, 0, W, H);
-
         for (let i = 0; i < pts.length; i++) {
           const p = pts[i];
           p.x += p.vx; p.y += p.vy;
           if (p.x < 0 || p.x > W) p.vx *= -1;
           if (p.y < 0 || p.y > H) p.vy *= -1;
-          p.x = Math.max(0, Math.min(W, p.x));
-          p.y = Math.max(0, Math.min(H, p.y));
         }
-
         for (let i = 0; i < pts.length; i++) {
           for (let j = i + 1; j < pts.length; j++) {
             const dx = pts[i].x - pts[j].x;
@@ -219,29 +203,21 @@ function initCanvas2D(canvas, themeRef) {
             }
           }
         }
-
         c.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`;
-        for (let i = 0; i < pts.length; i++) {
+        for (const p of pts) {
           c.beginPath();
-          c.arc(pts[i].x, pts[i].y, DOT_RADIUS, 0, Math.PI * 2);
+          c.arc(p.x, p.y, DOT_RADIUS, 0, Math.PI * 2);
           c.fill();
         }
       },
-
-      updateTheme() { /* color read from themeRef in animate() */ },
-
+      updateTheme() { },
       resize(w, h) {
         this.width = w; this.height = h;
         canvas.width = w * this.dpr;
         canvas.height = h * this.dpr;
         this.ctx.scale(this.dpr, this.dpr);
-        for (const p of this.particleList) {
-          if (p.x > w) p.x = Math.random() * w;
-          if (p.y > h) p.y = Math.random() * h;
-        }
       },
-
-      dispose() { /* nothing to dispose */ },
+      dispose() { },
     };
   } catch {
     return null;
@@ -258,99 +234,71 @@ export const DisplacementSphere = props => {
   const animationId = useRef(null);
   const themeRef = useRef(theme);
 
-  // Sync theme
   useEffect(() => {
     themeRef.current = theme;
-    try { engineRef.current?.updateTheme(theme); } catch { /* safe */ }
+    engineRef.current?.updateTheme(theme);
   }, [theme]);
 
-  // ── INIT + ANIMATE ──
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let engine = tryInitWebGL(canvas, themeRef);
-    if (!engine) {
-      engine = initCanvas2D(canvas, themeRef);
-    }
-    if (!engine) return;
+    // Safety delay for Production
+    const initTimer = setTimeout(() => {
+      let engine = tryInitWebGL(canvas, themeRef);
+      if (!engine) engine = initCanvas2D(canvas, themeRef);
+      if (!engine) return;
 
-    engineRef.current = engine;
+      engineRef.current = engine;
 
-    const handleContextLost = (e) => {
-      e.preventDefault();
-      cancelAnimationFrame(animationId.current);
-      try { engine.dispose(); } catch { /* safe */ }
+      const handleContextLost = (e) => {
+        e.preventDefault();
+        cancelAnimationFrame(animationId.current);
+        const fallback = initCanvas2D(canvas, themeRef);
+        if (fallback) {
+          engineRef.current = fallback;
+          runLoop();
+        }
+      };
 
-      const fallback = initCanvas2D(canvas, themeRef);
-      if (fallback) {
-        engineRef.current = fallback;
-        engine = fallback;
-        runLoop();
+      if (engine.type === 'webgl') {
+        canvas.addEventListener('webglcontextlost', handleContextLost);
       }
-    };
 
-    if (engine.type === 'webgl') {
-      canvas.addEventListener('webglcontextlost', handleContextLost);
-    }
-
-    function runLoop() {
-      const e = engineRef.current;
-      if (!e) return;
-
-      const tick = () => {
-        animationId.current = requestAnimationFrame(tick);
-        try {
-          e.animate();
-        } catch {
-          cancelAnimationFrame(animationId.current);
-          try { e.dispose(); } catch { /* safe */ }
-          const fallback = initCanvas2D(canvas, themeRef);
-          if (fallback) {
-            engineRef.current = fallback;
-            runLoop();
+      function runLoop() {
+        const tick = () => {
+          if (!engineRef.current) return;
+          try {
+            engineRef.current.animate();
+            animationId.current = requestAnimationFrame(tick);
+          } catch (err) {
+            console.warn("Switching to 2D Fallback", err);
+            const fallback = initCanvas2D(canvas, themeRef);
+            if (fallback) {
+              engineRef.current = fallback;
+              animationId.current = requestAnimationFrame(tick);
+            }
           }
-        }
-      };
-      tick();
-    }
+        };
+        tick();
+      }
 
-    if (!reduceMotion) {
-      runLoop();
-    } else {
-      // FIX 1: Draw frames during the CSS transition fade-in so it isn't blank
-      let start = Date.now();
-      const drawStaticDuringTransition = () => {
-        try { engine.animate(); } catch { /* safe */ }
-        if (Date.now() - start < 3500) {
-          requestAnimationFrame(drawStaticDuringTransition);
-        }
-      };
-      drawStaticDuringTransition();
-    }
+      if (!reduceMotion) runLoop();
+      else engine.animate();
+
+    }, 150);
 
     return () => {
-      cancelAnimationFrame(animationId.current);
-      animationId.current = null;
-      canvas.removeEventListener('webglcontextlost', handleContextLost);
-      try { engineRef.current?.dispose(); } catch { /* safe */ }
+      clearTimeout(initTimer);
+      if (animationId.current) cancelAnimationFrame(animationId.current);
+      try { engineRef.current?.dispose(); } catch { }
       engineRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reduceMotion]);
 
-  // ── RESIZE ──
   useEffect(() => {
-    const e = engineRef.current;
-    if (!e) return;
     const { width, height } = windowSize;
-    if (!width || !height) return;
-
-    try {
-      e.resize(width, height);
-      // FIX 2: Force a redraw immediately after resize to prevent mobile blank-out
-      e.animate();
-    } catch { /* safe */ }
+    if (width && height) engineRef.current?.resize(width, height);
   }, [windowSize]);
 
   return (
@@ -361,6 +309,11 @@ export const DisplacementSphere = props => {
           className={styles.canvas}
           data-visible={visible}
           ref={nodeRef}
+          style={{
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 2s ease-in-out',
+            pointerEvents: 'none' // Crucial: clicks project ke piche pass ho sakein
+          }}
           {...props}
         />
       )}
