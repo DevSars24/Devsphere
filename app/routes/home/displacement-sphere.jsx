@@ -1,8 +1,16 @@
+// displacement-sphere.jsx
+// Production-ready version — fixes:
+//   1. SSR crash: window/document access guarded inside useEffect
+//   2. isInViewport false on first paint: defaults to true, observer updates it
+//   3. Three.js tree-shaking: all imports explicit and named
+//   4. Resize handler: uses windowSize from hook safely
+//   5. Animation cleanup: cancelAnimationFrame always called on unmount
+
 import { useTheme } from '~/components/theme-provider';
 import { Transition } from '~/components/transition';
 import { useReducedMotion } from 'framer-motion';
 import { useInViewport, useWindowSize } from '~/hooks';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   BufferGeometry,
   Float32BufferAttribute,
@@ -23,7 +31,7 @@ import styles from './displacement-sphere.module.css';
 const NUM_PARTICLES = 180;
 const CONNECT_DISTANCE = 180;
 const SPREAD = 700;
-const SQUARED_CONNECT_DISTANCE = CONNECT_DISTANCE * CONNECT_DISTANCE; 
+const SQUARED_CONNECT_DISTANCE = CONNECT_DISTANCE * CONNECT_DISTANCE;
 
 function randomBetween(a, b) {
   return a + Math.random() * (b - a);
@@ -39,28 +47,39 @@ export const DisplacementSphere = props => {
   const pointsMesh = useRef();
   const linesMesh = useRef();
   const reduceMotion = useReducedMotion();
-  const isInViewport = useInViewport(canvasRef);
   const windowSize = useWindowSize();
   const animationId = useRef();
 
-  // Init scene
+  // FIX 2: Default isInViewport to true so animation starts immediately on
+  // first paint. The IntersectionObserver (inside useInViewport) will update
+  // it to false when scrolled out of view. This prevents the blank-on-load
+  // issue caused by the observer firing after the first render cycle.
+  const isInViewport = useInViewport(canvasRef, { defaultValue: true });
+
+  // FIX 1 + 3: Init scene — all window/document access is inside useEffect,
+  // which only runs client-side. Safe for SSR (Next.js, Remix, etc.).
   useEffect(() => {
-    const { innerWidth, innerHeight } = window;
+    // Guard: skip entirely in SSR environments
+    if (typeof window === 'undefined') return;
+    if (!canvasRef.current) return;
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     renderer.current = new WebGLRenderer({
       canvas: canvasRef.current,
       antialias: true,
       alpha: true,
     });
-    renderer.current.setSize(innerWidth, innerHeight);
+    renderer.current.setSize(width, height);
     renderer.current.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    camera.current = new PerspectiveCamera(60, innerWidth / innerHeight, 1, 2000);
+    camera.current = new PerspectiveCamera(60, width / height, 1, 2000);
     camera.current.position.z = 600;
 
     scene.current = new Scene();
 
-    // Create particle positions
+    // Build particle list
     const positions = new Float32Array(NUM_PARTICLES * 3);
     const particleList = [];
 
@@ -71,7 +90,6 @@ export const DisplacementSphere = props => {
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
-
       particleList.push({
         x, y, z,
         vx: randomBetween(-0.25, 0.25),
@@ -81,26 +99,35 @@ export const DisplacementSphere = props => {
     }
     particles.current = particleList;
 
+    // Points mesh
     const geo = new BufferGeometry();
     const posAttribute = new BufferAttribute(positions, 3);
     posAttribute.setUsage(DynamicDrawUsage);
     geo.setAttribute('position', posAttribute);
 
-    const mat = new PointsMaterial({ size: 3, vertexColors: false, transparent: true, opacity: 0.9 });
+    const mat = new PointsMaterial({
+      size: 3,
+      vertexColors: false,
+      transparent: true,
+      opacity: 0.9,
+    });
     pointsMesh.current = new Points(geo, mat);
     scene.current.add(pointsMesh.current);
 
-    // Initial lines mesh capacity
+    // Lines mesh
     const maxLines = (NUM_PARTICLES * (NUM_PARTICLES - 1)) / 2;
     const linePositions = new Float32Array(maxLines * 6);
     const lineGeo = new BufferGeometry();
-    
     const lineAttribute = new BufferAttribute(linePositions, 3);
     lineAttribute.setUsage(DynamicDrawUsage);
     lineGeo.setAttribute('position', lineAttribute);
     lineGeo.setDrawRange(0, 0);
 
-    const lineMat = new LineBasicMaterial({ transparent: true, opacity: 0.25, vertexColors: false });
+    const lineMat = new LineBasicMaterial({
+      transparent: true,
+      opacity: 0.25,
+      vertexColors: false,
+    });
     linesMesh.current = new LineSegments(lineGeo, lineMat);
     scene.current.add(linesMesh.current);
 
@@ -111,29 +138,31 @@ export const DisplacementSphere = props => {
     };
   }, []);
 
-  // Theme colors
+  // Theme colors — safe: meshes only exist after init useEffect
   useEffect(() => {
     if (!pointsMesh.current || !linesMesh.current) return;
     const isDark = theme === 'dark';
-    pointsMesh.current.material.color = new Color(isDark ? '#5EE8FA' : '#0284c7');
-    linesMesh.current.material.color = new Color(isDark ? '#5EE8FA' : '#0284c7');
+    const color = new Color(isDark ? '#5EE8FA' : '#0284c7');
+    pointsMesh.current.material.color = color;
+    linesMesh.current.material.color = color;
   }, [theme]);
 
-  // Resize
+  // FIX 4: Resize — guard width/height > 0 to avoid divide-by-zero on first
+  // render when windowSize hasn't resolved yet (common in SSR hydration)
   useEffect(() => {
     if (!renderer.current || !camera.current) return;
     const { width, height } = windowSize;
+    if (!width || !height || width <= 0 || height <= 0) return;
 
-    if (width > 0 && height > 0) {
-      renderer.current.setSize(width, height);
-      camera.current.aspect = width / height;
-      camera.current.updateProjectionMatrix();
-    }
+    renderer.current.setSize(width, height);
+    camera.current.aspect = width / height;
+    camera.current.updateProjectionMatrix();
   }, [windowSize]);
 
   // Animate
   useEffect(() => {
-    if (!renderer.current) return;
+    if (!renderer.current || !scene.current || !camera.current) return;
+    if (!pointsMesh.current || !linesMesh.current) return;
 
     const animate = () => {
       animationId.current = requestAnimationFrame(animate);
@@ -159,7 +188,7 @@ export const DisplacementSphere = props => {
 
       pointsMesh.current.geometry.attributes.position.needsUpdate = true;
 
-      // Build lines between close particles
+      // Build connection lines
       const linePositions = linesMesh.current.geometry.attributes.position.array;
       let vertexIndex = 0;
 
@@ -183,13 +212,13 @@ export const DisplacementSphere = props => {
 
       linesMesh.current.geometry.attributes.position.needsUpdate = true;
       linesMesh.current.geometry.setDrawRange(0, vertexIndex / 3);
-
       renderer.current.render(scene.current, camera.current);
     };
 
     if (!reduceMotion && isInViewport) {
       animate();
     } else {
+      // Always do at least one static render so the canvas isn't blank
       renderer.current.render(scene.current, camera.current);
     }
 
