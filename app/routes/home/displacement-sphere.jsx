@@ -40,7 +40,6 @@ function getRgb(theme) {
 // ─── STRATEGY 1: Three.js WebGL (preferred — true 3D depth) ─
 function tryInitWebGL(canvas, themeRef) {
   try {
-    // Pre-check: can the browser even make a WebGL context on this canvas?
     const testCtx = canvas.getContext('webgl2') || canvas.getContext('webgl');
     if (!testCtx) return null;
 
@@ -54,7 +53,6 @@ function tryInitWebGL(canvas, themeRef) {
     camera.position.z = 600;
     const scene = new Scene();
 
-    // Particles
     const positions = new Float32Array(NUM_PARTICLES * 3);
     const particleList = [];
     for (let i = 0; i < NUM_PARTICLES; i++) {
@@ -84,7 +82,6 @@ function tryInitWebGL(canvas, themeRef) {
     );
     scene.add(pointsMesh);
 
-    // Lines (pre-allocated max buffer)
     const maxVerts = NUM_PARTICLES * (NUM_PARTICLES - 1);
     const linePositions = new Float32Array(maxVerts * 3);
     const lineGeo = new BufferGeometry();
@@ -99,7 +96,6 @@ function tryInitWebGL(canvas, themeRef) {
     );
     scene.add(linesMesh);
 
-    // Verify: do one test render — if context is lost after this, bail out
     renderer.render(scene, camera);
     if (renderer.getContext().isContextLost()) {
       renderer.dispose();
@@ -273,16 +269,14 @@ export const DisplacementSphere = props => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Try WebGL first → fall back to Canvas 2D
     let engine = tryInitWebGL(canvas, themeRef);
     if (!engine) {
       engine = initCanvas2D(canvas, themeRef);
     }
-    if (!engine) return; // both failed (should never happen)
+    if (!engine) return;
 
     engineRef.current = engine;
 
-    // If WebGL, listen for context loss and auto-switch to Canvas 2D
     const handleContextLost = (e) => {
       e.preventDefault();
       cancelAnimationFrame(animationId.current);
@@ -300,7 +294,6 @@ export const DisplacementSphere = props => {
       canvas.addEventListener('webglcontextlost', handleContextLost);
     }
 
-    // Animation loop with error recovery
     function runLoop() {
       const e = engineRef.current;
       if (!e) return;
@@ -310,7 +303,6 @@ export const DisplacementSphere = props => {
         try {
           e.animate();
         } catch {
-          // Runtime error → switch to Canvas 2D
           cancelAnimationFrame(animationId.current);
           try { e.dispose(); } catch { /* safe */ }
           const fallback = initCanvas2D(canvas, themeRef);
@@ -326,7 +318,15 @@ export const DisplacementSphere = props => {
     if (!reduceMotion) {
       runLoop();
     } else {
-      try { engine.animate(); } catch { /* safe */ }
+      // FIX 1: Draw frames during the CSS transition fade-in so it isn't blank
+      let start = Date.now();
+      const drawStaticDuringTransition = () => {
+        try { engine.animate(); } catch { /* safe */ }
+        if (Date.now() - start < 3500) {
+          requestAnimationFrame(drawStaticDuringTransition);
+        }
+      };
+      drawStaticDuringTransition();
     }
 
     return () => {
@@ -345,7 +345,12 @@ export const DisplacementSphere = props => {
     if (!e) return;
     const { width, height } = windowSize;
     if (!width || !height) return;
-    try { e.resize(width, height); } catch { /* safe */ }
+
+    try {
+      e.resize(width, height);
+      // FIX 2: Force a redraw immediately after resize to prevent mobile blank-out
+      e.animate();
+    } catch { /* safe */ }
   }, [windowSize]);
 
   return (
