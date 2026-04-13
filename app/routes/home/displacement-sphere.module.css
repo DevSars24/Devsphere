@@ -1,6 +1,7 @@
 .canvas {
   position: absolute;
   width: 100vw;
+  height: 100vh;
   inset: 0;
   opacity: 0;
   transition-property: opacity;

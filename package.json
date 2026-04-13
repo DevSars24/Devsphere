@@ -1,9 +1,9 @@
 {
   "name": "portfolio",
-  "homepage": "https://hamishw.com",
-  "description": "Portfolio site for Hamish Williams",
-  "repository": "https://github.com/HamishMW/portfolio.git",
-  "author": "Hamish Williams",
+  "homepage": "https://github.com/saura",
+  "description": "Portfolio site for Saurabh Singh Rajput",
+  "repository": "https://github.com/saura/devsphere.git",
+  "author": "Saurabh Singh Rajput",
   "sideEffects": false,
   "type": "module",
   "scripts": {
@@ -56,6 +56,7 @@
     "storybook": "^7.6.17",
     "vite": "^5.1.0",
     "vite-jsconfig-paths": "^2.0.1",
+    "@types/mdx": "^2.0.13",
     "wrangler": "^3.24.0"
   },
   "engines": {
