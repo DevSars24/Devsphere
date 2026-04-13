@@ -1,305 +1,186 @@
 import { useTheme } from '~/components/theme-provider';
 import { Transition } from '~/components/transition';
-import { useReducedMotion } from 'framer-motion';
-import { useWindowSize } from '~/hooks';
-import { useEffect, useRef } from 'react';
+import { useReducedMotion, useSpring } from 'framer-motion';
+import { useInViewport, useWindowSize } from '~/hooks';
+import { startTransition, useEffect, useRef } from 'react';
 import {
-  BufferGeometry,
+  AmbientLight,
+  DirectionalLight,
+  LinearSRGBColorSpace,
+  Mesh,
+  MeshPhongMaterial,
   PerspectiveCamera,
-  Points,
-  PointsMaterial,
   Scene,
+  SphereGeometry,
+  UniformsUtils,
+  Vector2,
   WebGLRenderer,
-  Color,
-  LineSegments,
-  LineBasicMaterial,
-  BufferAttribute,
-  DynamicDrawUsage,
 } from 'three';
+import { media } from '~/utils/style';
+import { throttle } from '~/utils/throttle';
+import { cleanRenderer, cleanScene, removeLights } from '~/utils/three';
+import fragmentShader from './displacement-sphere-fragment.glsl?raw';
+import vertexShader from './displacement-sphere-vertex.glsl?raw';
 import styles from './displacement-sphere.module.css';
 
-// ─── CONFIG ─────────────────────────────────────────────────
-const NUM_PARTICLES = 150;
-const CONNECT_DISTANCE = 160;
-const CONNECT_DISTANCE_SQ = CONNECT_DISTANCE * CONNECT_DISTANCE;
-const SPREAD = 700;
-const DOT_RADIUS = 1.5;
+const springConfig = {
+  stiffness: 30,
+  damping: 20,
+  mass: 2,
+};
 
-function randomBetween(a, b) {
-  return a + Math.random() * (b - a);
-}
-
-function getColor(theme) {
-  return theme === 'dark' ? '#5EE8FA' : '#0284c7';
-}
-
-function getRgb(theme) {
-  return theme === 'dark' ? [94, 232, 250] : [2, 132, 199];
-}
-
-// ─── STRATEGY 1: Three.js WebGL ──────────────────────────────
-function tryInitWebGL(canvas, themeRef) {
-  try {
-    const testCtx = canvas.getContext('webgl2') || canvas.getContext('webgl');
-    if (!testCtx) return null;
-
-    const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-    const camera = new PerspectiveCamera(60, w / h, 1, 2000);
-    camera.position.z = 600;
-    const scene = new Scene();
-
-    const positions = new Float32Array(NUM_PARTICLES * 3);
-    const particleList = [];
-    for (let i = 0; i < NUM_PARTICLES; i++) {
-      const x = randomBetween(-SPREAD / 2, SPREAD / 2);
-      const y = randomBetween(-SPREAD / 2, SPREAD / 2);
-      const z = randomBetween(-SPREAD / 2, SPREAD / 2);
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
-      particleList.push({
-        x, y, z,
-        vx: randomBetween(-0.2, 0.2),
-        vy: randomBetween(-0.2, 0.2),
-        vz: randomBetween(-0.1, 0.1),
-      });
-    }
-
-    const pointGeo = new BufferGeometry();
-    const pointAttr = new BufferAttribute(positions, 3);
-    pointAttr.setUsage(DynamicDrawUsage);
-    pointGeo.setAttribute('position', pointAttr);
-
-    const baseColor = new Color(getColor(themeRef.current));
-    const pointsMesh = new Points(
-      pointGeo,
-      new PointsMaterial({ size: 3, transparent: true, opacity: 0.9, color: baseColor })
-    );
-    scene.add(pointsMesh);
-
-    const maxVerts = NUM_PARTICLES * (NUM_PARTICLES - 1);
-    const linePositions = new Float32Array(maxVerts * 3);
-    const lineGeo = new BufferGeometry();
-    const lineAttr = new BufferAttribute(linePositions, 3);
-    lineAttr.setUsage(DynamicDrawUsage);
-    lineGeo.setAttribute('position', lineAttr);
-    lineGeo.setDrawRange(0, 0);
-
-    const linesMesh = new LineSegments(
-      lineGeo,
-      new LineBasicMaterial({ transparent: true, opacity: 0.25, color: baseColor })
-    );
-    scene.add(linesMesh);
-
-    return {
-      type: 'webgl',
-      renderer, camera, scene, pointsMesh, linesMesh, particleList,
-      animate() {
-        const pts = this.particleList;
-        const pArr = this.pointsMesh.geometry.attributes.position.array;
-        for (let i = 0; i < NUM_PARTICLES; i++) {
-          const p = pts[i];
-          p.x += p.vx; p.y += p.vy; p.z += p.vz;
-          if (Math.abs(p.x) > SPREAD / 2) p.vx *= -1;
-          if (Math.abs(p.y) > SPREAD / 2) p.vy *= -1;
-          if (Math.abs(p.z) > SPREAD / 2) p.vz *= -1;
-          pArr[i * 3] = p.x; pArr[i * 3 + 1] = p.y; pArr[i * 3 + 2] = p.z;
-        }
-        this.pointsMesh.geometry.attributes.position.needsUpdate = true;
-
-        const lArr = this.linesMesh.geometry.attributes.position.array;
-        let vi = 0;
-        for (let i = 0; i < NUM_PARTICLES; i++) {
-          for (let j = i + 1; j < NUM_PARTICLES; j++) {
-            const dx = pts[i].x - pts[j].x;
-            const dy = pts[i].y - pts[j].y;
-            const dz = pts[i].z - pts[j].z;
-            if (dx * dx + dy * dy + dz * dz < CONNECT_DISTANCE_SQ) {
-              lArr[vi++] = pts[i].x; lArr[vi++] = pts[i].y; lArr[vi++] = pts[i].z;
-              lArr[vi++] = pts[j].x; lArr[vi++] = pts[j].y; lArr[vi++] = pts[j].z;
-            }
-          }
-        }
-        this.linesMesh.geometry.attributes.position.needsUpdate = true;
-        this.linesMesh.geometry.setDrawRange(0, vi / 3);
-        this.renderer.render(this.scene, this.camera);
-      },
-      updateTheme(t) {
-        const c = new Color(getColor(t));
-        this.pointsMesh.material.color = c;
-        this.linesMesh.material.color = c;
-      },
-      resize(w, h) {
-        this.renderer.setSize(w, h);
-        this.camera.aspect = w / h;
-        this.camera.updateProjectionMatrix();
-      },
-      dispose() {
-        this.pointsMesh.geometry.dispose();
-        this.pointsMesh.material.dispose();
-        this.linesMesh.geometry.dispose();
-        this.linesMesh.material.dispose();
-        this.renderer.dispose();
-      },
-    };
-  } catch {
-    return null;
-  }
-}
-
-// ─── STRATEGY 2: Canvas 2D Fallback ─────────────────────────
-function initCanvas2D(canvas, themeRef) {
-  try {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-
-    const particleList = [];
-    for (let i = 0; i < NUM_PARTICLES; i++) {
-      particleList.push({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: randomBetween(-0.35, 0.35),
-        vy: randomBetween(-0.35, 0.35),
-      });
-    }
-
-    return {
-      type: 'canvas2d',
-      ctx, particleList, width: w, height: h, dpr,
-      animate() {
-        const { ctx: c, particleList: pts, width: W, height: H } = this;
-        const rgb = getRgb(themeRef.current);
-        c.clearRect(0, 0, W, H);
-        for (let i = 0; i < pts.length; i++) {
-          const p = pts[i];
-          p.x += p.vx; p.y += p.vy;
-          if (p.x < 0 || p.x > W) p.vx *= -1;
-          if (p.y < 0 || p.y > H) p.vy *= -1;
-        }
-        for (let i = 0; i < pts.length; i++) {
-          for (let j = i + 1; j < pts.length; j++) {
-            const dx = pts[i].x - pts[j].x;
-            const dy = pts[i].y - pts[j].y;
-            const distSq = dx * dx + dy * dy;
-            if (distSq < 120 * 120) {
-              const opacity = (1 - Math.sqrt(distSq) / 120) * 0.25;
-              c.beginPath();
-              c.moveTo(pts[i].x, pts[i].y);
-              c.lineTo(pts[j].x, pts[j].y);
-              c.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${opacity})`;
-              c.lineWidth = 0.6;
-              c.stroke();
-            }
-          }
-        }
-        c.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`;
-        for (const p of pts) {
-          c.beginPath();
-          c.arc(p.x, p.y, DOT_RADIUS, 0, Math.PI * 2);
-          c.fill();
-        }
-      },
-      updateTheme() { },
-      resize(w, h) {
-        this.width = w; this.height = h;
-        canvas.width = w * this.dpr;
-        canvas.height = h * this.dpr;
-        this.ctx.scale(this.dpr, this.dpr);
-      },
-      dispose() { },
-    };
-  } catch {
-    return null;
-  }
-}
-
-// ─── REACT COMPONENT ────────────────────────────────────────
 export const DisplacementSphere = props => {
   const { theme } = useTheme();
-  const canvasRef = useRef(null);
-  const engineRef = useRef(null);
+  const start = useRef(Date.now());
+  const canvasRef = useRef();
+  const mouse = useRef();
+  const renderer = useRef();
+  const camera = useRef();
+  const scene = useRef();
+  const lights = useRef();
+  const uniforms = useRef();
+  const material = useRef();
+  const geometry = useRef();
+  const sphere = useRef();
   const reduceMotion = useReducedMotion();
+  const isInViewport = useInViewport(canvasRef);
   const windowSize = useWindowSize();
-  const animationId = useRef(null);
-  const themeRef = useRef(theme);
+  const rotationX = useSpring(0, springConfig);
+  const rotationY = useSpring(0, springConfig);
 
   useEffect(() => {
-    themeRef.current = theme;
-    engineRef.current?.updateTheme(theme);
+    const { innerWidth, innerHeight } = window;
+    mouse.current = new Vector2(0.8, 0.5);
+    renderer.current = new WebGLRenderer({
+      canvas: canvasRef.current,
+      antialias: false,
+      alpha: true,
+      powerPreference: 'high-performance',
+      failIfMajorPerformanceCaveat: true,
+    });
+    renderer.current.setSize(innerWidth, innerHeight);
+    renderer.current.setPixelRatio(1);
+    renderer.current.outputColorSpace = LinearSRGBColorSpace;
+
+    camera.current = new PerspectiveCamera(54, innerWidth / innerHeight, 0.1, 100);
+    camera.current.position.z = 52;
+
+    scene.current = new Scene();
+
+    material.current = new MeshPhongMaterial();
+    material.current.onBeforeCompile = shader => {
+      uniforms.current = UniformsUtils.merge([
+        shader.uniforms,
+        { time: { type: 'f', value: 0 } },
+      ]);
+
+      shader.uniforms = uniforms.current;
+      shader.vertexShader = vertexShader;
+      shader.fragmentShader = fragmentShader;
+    };
+
+    startTransition(() => {
+      geometry.current = new SphereGeometry(32, 128, 128);
+      sphere.current = new Mesh(geometry.current, material.current);
+      sphere.current.position.z = 0;
+      sphere.current.modifier = Math.random();
+      scene.current.add(sphere.current);
+    });
+
+    return () => {
+      cleanScene(scene.current);
+      cleanRenderer(renderer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const dirLight = new DirectionalLight(0xffffff, theme === 'light' ? 1.8 : 2.0);
+    const ambientLight = new AmbientLight(0xffffff, theme === 'light' ? 2.7 : 0.4);
+
+    dirLight.position.z = 200;
+    dirLight.position.x = 100;
+    dirLight.position.y = 100;
+
+    lights.current = [dirLight, ambientLight];
+    lights.current.forEach(light => scene.current.add(light));
+
+    return () => {
+      removeLights(lights.current);
+    };
   }, [theme]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const { width, height } = windowSize;
 
-    // Safety delay for Production
-    const initTimer = setTimeout(() => {
-      let engine = tryInitWebGL(canvas, themeRef);
-      if (!engine) engine = initCanvas2D(canvas, themeRef);
-      if (!engine) return;
+    const adjustedHeight = height + height * 0.3;
+    renderer.current.setSize(width, adjustedHeight);
+    camera.current.aspect = width / adjustedHeight;
+    camera.current.updateProjectionMatrix();
 
-      engineRef.current = engine;
+    // Render a single frame on resize when not animating
+    if (reduceMotion) {
+      renderer.current.render(scene.current, camera.current);
+    }
 
-      const handleContextLost = (e) => {
-        e.preventDefault();
-        cancelAnimationFrame(animationId.current);
-        const fallback = initCanvas2D(canvas, themeRef);
-        if (fallback) {
-          engineRef.current = fallback;
-          runLoop();
-        }
-      };
-
-      if (engine.type === 'webgl') {
-        canvas.addEventListener('webglcontextlost', handleContextLost);
-      }
-
-      function runLoop() {
-        const tick = () => {
-          if (!engineRef.current) return;
-          try {
-            engineRef.current.animate();
-            animationId.current = requestAnimationFrame(tick);
-          } catch (err) {
-            console.warn("Switching to 2D Fallback", err);
-            const fallback = initCanvas2D(canvas, themeRef);
-            if (fallback) {
-              engineRef.current = fallback;
-              animationId.current = requestAnimationFrame(tick);
-            }
-          }
-        };
-        tick();
-      }
-
-      if (!reduceMotion) runLoop();
-      else engine.animate();
-
-    }, 150);
-
-    return () => {
-      clearTimeout(initTimer);
-      if (animationId.current) cancelAnimationFrame(animationId.current);
-      try { engineRef.current?.dispose(); } catch { }
-      engineRef.current = null;
-    };
-  }, [reduceMotion]);
+    if (width <= media.mobile) {
+      sphere.current.position.x = 14;
+      sphere.current.position.y = 10;
+    } else if (width <= media.tablet) {
+      sphere.current.position.x = 18;
+      sphere.current.position.y = 14;
+    } else {
+      sphere.current.position.x = 22;
+      sphere.current.position.y = 16;
+    }
+  }, [reduceMotion, windowSize]);
 
   useEffect(() => {
-    const { width, height } = windowSize;
-    if (width && height) engineRef.current?.resize(width, height);
-  }, [windowSize]);
+    const onMouseMove = throttle(event => {
+      const position = {
+        x: event.clientX / window.innerWidth,
+        y: event.clientY / window.innerHeight,
+      };
+
+      rotationX.set(position.y / 2);
+      rotationY.set(position.x / 2);
+    }, 100);
+
+    if (!reduceMotion && isInViewport) {
+      window.addEventListener('mousemove', onMouseMove);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+    };
+  }, [isInViewport, reduceMotion, rotationX, rotationY]);
+
+  useEffect(() => {
+    let animation;
+
+    const animate = () => {
+      animation = requestAnimationFrame(animate);
+
+      if (uniforms.current !== undefined) {
+        uniforms.current.time.value = 0.00005 * (Date.now() - start.current);
+      }
+
+      sphere.current.rotation.z += 0.001;
+      sphere.current.rotation.x = rotationX.get();
+      sphere.current.rotation.y = rotationY.get();
+
+      renderer.current.render(scene.current, camera.current);
+    };
+
+    if (!reduceMotion && isInViewport) {
+      animate();
+    } else {
+      renderer.current.render(scene.current, camera.current);
+    }
+
+    return () => {
+      cancelAnimationFrame(animation);
+    };
+  }, [isInViewport, reduceMotion, rotationX, rotationY]);
 
   return (
     <Transition in timeout={3000} nodeRef={canvasRef}>
@@ -309,11 +190,6 @@ export const DisplacementSphere = props => {
           className={styles.canvas}
           data-visible={visible}
           ref={nodeRef}
-          style={{
-            opacity: visible ? 1 : 0,
-            transition: 'opacity 2s ease-in-out',
-            pointerEvents: 'none' // Crucial: clicks project ke piche pass ho sakein
-          }}
           {...props}
         />
       )}
