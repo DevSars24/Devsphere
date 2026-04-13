@@ -15,13 +15,15 @@ import {
   LineSegments,
   LineBasicMaterial,
   BufferAttribute,
+  DynamicDrawUsage,
 } from 'three';
 import { cleanRenderer, cleanScene } from '~/utils/three';
 import styles from './displacement-sphere.module.css';
 
-const NUM_PARTICLES = 120;
-const CONNECT_DISTANCE = 160;
+const NUM_PARTICLES = 180;
+const CONNECT_DISTANCE = 180;
 const SPREAD = 700;
+const SQUARED_CONNECT_DISTANCE = CONNECT_DISTANCE * CONNECT_DISTANCE; 
 
 function randomBetween(a, b) {
   return a + Math.random() * (b - a);
@@ -59,33 +61,47 @@ export const DisplacementSphere = props => {
     scene.current = new Scene();
 
     // Create particle positions
-    const positions = [];
+    const positions = new Float32Array(NUM_PARTICLES * 3);
     const particleList = [];
 
     for (let i = 0; i < NUM_PARTICLES; i++) {
       const x = randomBetween(-SPREAD / 2, SPREAD / 2);
       const y = randomBetween(-SPREAD / 2, SPREAD / 2);
       const z = randomBetween(-SPREAD / 2, SPREAD / 2);
-      positions.push(x, y, z);
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
       particleList.push({
         x, y, z,
-        vx: randomBetween(-0.15, 0.15),
-        vy: randomBetween(-0.15, 0.15),
-        vz: randomBetween(-0.08, 0.08),
+        vx: randomBetween(-0.25, 0.25),
+        vy: randomBetween(-0.25, 0.25),
+        vz: randomBetween(-0.15, 0.15),
       });
     }
     particles.current = particleList;
 
     const geo = new BufferGeometry();
-    geo.setAttribute('position', new Float32BufferAttribute(positions, 3));
+    const posAttribute = new BufferAttribute(positions, 3);
+    posAttribute.setUsage(DynamicDrawUsage);
+    geo.setAttribute('position', posAttribute);
 
     const mat = new PointsMaterial({ size: 3, vertexColors: false, transparent: true, opacity: 0.9 });
     pointsMesh.current = new Points(geo, mat);
     scene.current.add(pointsMesh.current);
 
-    // Lines mesh (updated each frame)
+    // Initial lines mesh capacity
+    const maxLines = (NUM_PARTICLES * (NUM_PARTICLES - 1)) / 2;
+    const linePositions = new Float32Array(maxLines * 6);
+    const lineGeo = new BufferGeometry();
+    
+    const lineAttribute = new BufferAttribute(linePositions, 3);
+    lineAttribute.setUsage(DynamicDrawUsage);
+    lineGeo.setAttribute('position', lineAttribute);
+    lineGeo.setDrawRange(0, 0);
+
     const lineMat = new LineBasicMaterial({ transparent: true, opacity: 0.25, vertexColors: false });
-    linesMesh.current = new LineSegments(new BufferGeometry(), lineMat);
+    linesMesh.current = new LineSegments(lineGeo, lineMat);
     scene.current.add(linesMesh.current);
 
     return () => {
@@ -99,8 +115,8 @@ export const DisplacementSphere = props => {
   useEffect(() => {
     if (!pointsMesh.current || !linesMesh.current) return;
     const isDark = theme === 'dark';
-    pointsMesh.current.material.color = new Color(isDark ? '#6ee7f7' : '#0284c7');
-    linesMesh.current.material.color = new Color(isDark ? '#6ee7f7' : '#0284c7');
+    pointsMesh.current.material.color = new Color(isDark ? '#5EE8FA' : '#0284c7');
+    linesMesh.current.material.color = new Color(isDark ? '#5EE8FA' : '#0284c7');
   }, [theme]);
 
   // Resize
@@ -123,7 +139,7 @@ export const DisplacementSphere = props => {
       animationId.current = requestAnimationFrame(animate);
 
       const pts = particles.current;
-      const posArray = new Float32Array(NUM_PARTICLES * 3);
+      const pointPositions = pointsMesh.current.geometry.attributes.position.array;
 
       for (let i = 0; i < NUM_PARTICLES; i++) {
         const p = pts[i];
@@ -136,31 +152,37 @@ export const DisplacementSphere = props => {
         if (Math.abs(p.y) > SPREAD / 2) p.vy *= -1;
         if (Math.abs(p.z) > SPREAD / 2) p.vz *= -1;
 
-        posArray[i * 3] = p.x;
-        posArray[i * 3 + 1] = p.y;
-        posArray[i * 3 + 2] = p.z;
+        pointPositions[i * 3] = p.x;
+        pointPositions[i * 3 + 1] = p.y;
+        pointPositions[i * 3 + 2] = p.z;
       }
 
-      pointsMesh.current.geometry.setAttribute('position', new Float32BufferAttribute(posArray, 3));
+      pointsMesh.current.geometry.attributes.position.needsUpdate = true;
 
       // Build lines between close particles
-      const linePositions = [];
+      const linePositions = linesMesh.current.geometry.attributes.position.array;
+      let vertexIndex = 0;
+
       for (let i = 0; i < NUM_PARTICLES; i++) {
         for (let j = i + 1; j < NUM_PARTICLES; j++) {
           const dx = pts[i].x - pts[j].x;
           const dy = pts[i].y - pts[j].y;
           const dz = pts[i].z - pts[j].z;
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          if (dist < CONNECT_DISTANCE) {
-            linePositions.push(pts[i].x, pts[i].y, pts[i].z, pts[j].x, pts[j].y, pts[j].z);
+          const distSq = dx * dx + dy * dy + dz * dz;
+
+          if (distSq < SQUARED_CONNECT_DISTANCE) {
+            linePositions[vertexIndex++] = pts[i].x;
+            linePositions[vertexIndex++] = pts[i].y;
+            linePositions[vertexIndex++] = pts[i].z;
+            linePositions[vertexIndex++] = pts[j].x;
+            linePositions[vertexIndex++] = pts[j].y;
+            linePositions[vertexIndex++] = pts[j].z;
           }
         }
       }
 
-      linesMesh.current.geometry.setAttribute(
-        'position',
-        new BufferAttribute(new Float32Array(linePositions), 3)
-      );
+      linesMesh.current.geometry.attributes.position.needsUpdate = true;
+      linesMesh.current.geometry.setDrawRange(0, vertexIndex / 3);
 
       renderer.current.render(scene.current, camera.current);
     };
