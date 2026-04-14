@@ -132,9 +132,17 @@ export const Profile = ({ id, visible, sectionRef }) => {
                         <span className={styles.statLabel}>EXPERIENCE.</span>
                         <span className={styles.statMeta}>SIH 35th, Inter-IIIT 8th Rank | Worked on making better web design and ml model integeration</span>
                       </div>
+                      <div className={`${styles.miniStatCard} ${styles.featuredStat}`}>
+                        <span className={styles.statLabel}>🏆 ACHIEVEMENT.</span>
+                        <span className={styles.statMeta}>Grand Finalist at IIIT Hyderabad for ANRF AISEHack</span>
+                      </div>
                       <div className={styles.miniStatCard}>
-                        <span className={styles.statLabel}>ACHIEVEMENT.</span>
-                        <span className={styles.statMeta}>Top 160 GFG college rank</span>
+                        <span className={styles.statLabel}>🚀 IMPACT.</span>
+                        <span className={styles.statMeta}>Top 160 GFG College Rank</span>
+                      </div>
+                      <div className={styles.miniStatCard}>
+                        <span className={styles.statLabel}>🏅 LEETCODE.</span>
+                        <span className={styles.statMeta}>1595 Max Rating</span>
                       </div>
                       <div className={styles.miniStatCard}>
                         <span className={styles.statLabel}>DSA.</span>
@@ -172,11 +180,12 @@ export const Profile = ({ id, visible, sectionRef }) => {
                         title={`Spotify ${index}`}
                         src={`https://open.spotify.com/embed/track/${id}?utm_source=generator&theme=0`}
                         width="100%"
-                        height="80"
+                        height="152"
                         frameBorder="0"
                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                         loading="lazy"
                         className={styles.spotifyIframe}
+                        scrolling="no"
                       />
                     ))}
                   </div>
