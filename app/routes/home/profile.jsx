@@ -79,7 +79,7 @@ export const Profile = ({ id, visible, sectionRef }) => {
                 <div className={styles.bioBlock}>
                   <div className={styles.bioTop}>
                     <div className={styles.avatarWrap}>
-                      <img src="/icon-256.png" alt="Sars" className={styles.avatar} />
+                      <img src="/icon.svg" alt="Sars" className={styles.avatar} />
                     </div>
                     <div className={styles.nameMeta}>
                       <span className={styles.name}>{config.name}</span>
