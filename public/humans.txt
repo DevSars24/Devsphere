@@ -10,7 +10,7 @@ _______________________________________________________________________________
 
 DESIGNER | デザイナー
 
-Hamish Williams
+Saurabh Singh Rajput
 Hand crafted design & web development
 
 Design tools:
@@ -18,8 +18,8 @@ Figma
 Photoshop
 Blender
 
-twitter.com/hamishmw
-github.com/hamishmw
+twitter.com/SaurabhSin15850
+github.com/DevSars24
 
 _______________________________________________________________________________
 
